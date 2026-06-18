@@ -29,7 +29,7 @@ def extract_keywords(text: str) -> str:
     tokens = text.split()
     stops = {"the","and","this","that","with","from","your","what","when","where","how","why","who","will","would","could","should","have","been","they"}
     words = [t for t in tokens if len(t) > 3 and t.lower() not in stops]
-    return " ".join(words[:8])
+    return " ".join(words[:4])
 
 
 def search_live_news(claim: str) -> dict:
@@ -65,13 +65,22 @@ def search_live_news(claim: str) -> dict:
             params={
                 "q":        query,
                 "language": "en",
-                "pageSize": 50,
+                "pageSize": 20,
                 "sortBy":   "relevancy",
                 "apiKey":   NEWSAPI_KEY,
             },
             timeout=8,
         )
         data = resp.json()
+        
+        # NewsAPI returns status="error" if rate limited or invalid query
+        if data.get("status") == "error":
+            return {
+                "found": False, "trusted_match_count": 0,
+                "matched_articles": [], "verdict": "API_UNAVAILABLE",
+                "search_query": query, "note": data.get("message", "NewsAPI Error"),
+            }
+            
     except Exception as e:
         return {
             "found": False, "trusted_match_count": 0,
